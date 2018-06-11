@@ -1,8 +1,7 @@
-import xservice from 'yqf-xservice'
-import { hubConnection, signalR } from 'signalr-no-jquery'
+var { hubConnection, signalR } = require('signalr-no-jquery')
 
-let _config;
-let _servingClient;
+const imServerUrl = 'https://im.yiqifei.com/'
+
 let _connection;
 let _hubProxy;
 let _eventMap = {};
@@ -13,16 +12,6 @@ let _eventMap = {};
 //     reconnecting: 2,
 //     disconnected: 4
 // };
-
-async function getToken(userCode) {
-    var req = {
-        Platform: 'MobileDevice',
-        Source: 'react im test',
-        UserCode: userCode
-    }
-    var rsp = await _servingClient.invoke('IM.GetToken', req)
-    return rsp.Token
-}
 
 function registEvent(owner, eventName, callback) {
     eventName = eventName.toLowerCase();
@@ -46,38 +35,17 @@ function raiseEvent(eventName, ...args) {
     }
 }
 
-class IMServer {
-     /**
-     * @typedef ConfigType
-     * @type Object
-     * @property {String} imServerUrl
-     * @property {String} xserviceServerUrl
-     * @property {String} xserviceAppKey
-     * @property {String} xserviceAppSecret
-     */
+function IMServer(){
+    var self = this;
 
-    /**
-     * 全局配置
-     *
-     * @param {ConfigType} config
-     */
-    static setConfig = function(config){
-        _config = config;
-        _servingClient = xservice.servingClient(config.xserviceServerUrl, config.xserviceAppKey, config.xserviceAppSecret)
-    }
+    this.connectionState = signalR.connectionState.disconnected
 
-    static connectionState =  signalR.connectionState.disconnected
-
-    static start = async function () {
-        var userCode = _config.onGetCurrentUser();
-
-        return new Promise(async (resolve, reject) => {
+    this.start = function (token) {
+        return new Promise((resolve, reject) => {
             if (_connection == null || _connection.state == signalR.connectionState.disconnected) {
-                var token = await getToken(userCode)
-
-                _connection = hubConnection(_config.imServerUrl + '/signalr', { qs: 'token=' + token });
+                _connection = hubConnection(imServerUrl + '/signalr', { qs: 'token=' + token });
                 _connection.stateChanged(function () {
-                    IMServer.state =  _connection.state;
+                    IMServer.state = _connection.state;
                     raiseEvent('SYS:OnConnectionStateChanged');
                 });
 
@@ -106,55 +74,46 @@ class IMServer {
         });
     }
 
-     /**
-     * 准备
-     *
-     * @param {Function} callback context=>
-     */
-    static prepare = function(callback){
-
-    }
-
-    static stop = function () {
+    this.stop = function () {
         if (_connection != null && _connection.state != signalR.connectionState.disconnected) {
             _connection.stop();
         }
     }
 
     // 服务端方法
-    static methods = {
-        addFriend: async (message) => await _hubProxy.invoke('AddFriend', message),
-        addGroupMember: async (message) => await _hubProxy.invoke('AddGroupMember', message),
-        createGroup: async (message) => await _hubProxy.invoke('CreateGroup', message),
-        deleteFriend: async (message) => await _hubProxy.invoke('DeleteFriend', message),
-        dismissGroup: async (message) => await _hubProxy.invoke('DismissGroup', message),
-        exitGroup: async (message) => await _hubProxy.invoke('ExitGroup', message),
-        friendResponse: async (message) => await _hubProxy.invoke('FriendResponse', message),
-        getLoginUser: async () => await _hubProxy.invoke('GetLoginUser'),
-        groupResponse: async (message) => await _hubProxy.invoke('GroupResponse', message),
-        joinGroup: async (message) => await _hubProxy.invoke('JoinGroup', message),
-        modifyGroupInfo: async (message) => await _hubProxy.invoke('ModifyGroupInfo', message),
-        preAddFriend: async (message) => await _hubProxy.invoke('PreAddFriend', message),
-        removeGroupMember: async (message) => await _hubProxy.invoke('RemoveGroupMember', message),
-        sendChat: async (message) => await _hubProxy.invoke('SendChat', message),
-        setReadMessage: async (message) => await _hubProxy.invoke('SetReadMessage', message),
-        csService_Accept: async (message) => await _hubProxy.invoke('CSService_Accept', message),
-        csService_Chat: async (message) => await _hubProxy.invoke('CSService_Chat', message),
-        csService_Forwarding: async (message) => await _hubProxy.invoke('CSService_Forwarding', message),
-        csService_Leave: async (message) => await _hubProxy.invoke('CSService_Leave', message),
-        csService_Reject: async (message) => await _hubProxy.invoke('CSService_Reject', message),
-        csUser_Chat: async (message) => await _hubProxy.invoke('CSUser_Chat', message),
-        csUser_Enter: async (message) => await _hubProxy.invoke('CSUser_Enter', message),
-        csUser_Leave: async (message) => await _hubProxy.invoke('CSUser_Leave', message),
-        csUser_Request: async (message) => await _hubProxy.invoke('CSUser_Request', message),
+    this.methods = {
+        addFriend: (message) => _hubProxy.invoke('AddFriend', message),
+        addGroupMember: (message) => _hubProxy.invoke('AddGroupMember', message),
+        createGroup: (message) => _hubProxy.invoke('CreateGroup', message),
+        deleteFriend: (message) => _hubProxy.invoke('DeleteFriend', message),
+        dismissGroup: (message) => _hubProxy.invoke('DismissGroup', message),
+        exitGroup: (message) => _hubProxy.invoke('ExitGroup', message),
+        friendResponse: (message) => _hubProxy.invoke('FriendResponse', message),
+        getLoginUser: () => _hubProxy.invoke('GetLoginUser'),
+        groupResponse: (message) => _hubProxy.invoke('GroupResponse', message),
+        joinGroup: (message) => _hubProxy.invoke('JoinGroup', message),
+        modifyGroupInfo: (message) => _hubProxy.invoke('ModifyGroupInfo', message),
+        preAddFriend: (message) => _hubProxy.invoke('PreAddFriend', message),
+        removeGroupMember: (message) => _hubProxy.invoke('RemoveGroupMember', message),
+        sendChat: (message) => _hubProxy.invoke('SendChat', message),
+        setReadMessage: (message) => _hubProxy.invoke('SetReadMessage', message),
+        csService_Accept: (message) => _hubProxy.invoke('CSService_Accept', message),
+        csService_Chat: (message) => _hubProxy.invoke('CSService_Chat', message),
+        csService_Forwarding: (message) => _hubProxy.invoke('CSService_Forwarding', message),
+        csService_Leave: (message) => _hubProxy.invoke('CSService_Leave', message),
+        csService_Reject: (message) => _hubProxy.invoke('CSService_Reject', message),
+        csUser_Chat: (message) => _hubProxy.invoke('CSUser_Chat', message),
+        csUser_Enter: (message) => _hubProxy.invoke('CSUser_Enter', message),
+        csUser_Leave: (message) => _hubProxy.invoke('CSUser_Leave', message),
+        csUser_Request: (message) => _hubProxy.invoke('CSUser_Request', message),
     }
 
     // 客户端事件
-    static events = {
+    this.events = {
         off: (owner) => unregistEvents(owner),
 
         onConnectionStateChanged: (owner, callback) => registEvent(owner, 'SYS:OnConnectionStateChanged', callback),
-        
+
         onChat: (owner, callback) => registEvent(owner, 'OnChat', callback),
         onKickOff: (owner, callback) => registEvent(owner, 'OnKickOff', callback),
         onGroupNotify: (owner, callback) => registEvent(owner, 'OnGroupNotify', callback),
@@ -172,5 +131,28 @@ class IMServer {
     }
 }
 
-exports.ConnectionState = signalR.connectionState
-exports.IMServer = IMServer
+IMServer.prototype.events = {
+    off: (owner) => unregistEvents(owner),
+
+    onConnectionStateChanged: (owner, callback) => registEvent(owner, 'SYS:OnConnectionStateChanged', callback),
+
+    onChat: (owner, callback) => registEvent(owner, 'OnChat', callback),
+    onKickOff: (owner, callback) => registEvent(owner, 'OnKickOff', callback),
+    onGroupNotify: (owner, callback) => registEvent(owner, 'OnGroupNotify', callback),
+    onSNSNotify: (owner, callback) => registEvent(owner, 'OnSNSNotify', callback),
+    onCSService_Chat: (owner, callback) => registEvent(owner, 'OnCSService_Chat', callback),
+    onCSService_ChatRequest: (owner, callback) => registEvent(owner, 'OnCSService_ChatRequest', callback),
+    onCSService_ChatRequestCancelled: (owner, callback) => registEvent(owner, 'OnCSService_ChatRequestCancelled', callback),
+    onCSService_UserLeave: (owner, callback) => registEvent(owner, 'OnCSService_UserLeave', callback),
+    onCSService_ForwardingResult: (owner, callback) => registEvent(owner, 'OnCSService_ForwardingResult', callback),
+    onCSUser_Chat: (owner, callback) => registEvent(owner, 'OnCSUser_Chat', callback),
+    onCSUser_ServiceJoin: (owner, callback) => registEvent(owner, 'OnCSUser_ServiceJoin', callback),
+    onCSUser_ServiceLeave: (owner, callback) => registEvent(owner, 'OnCSUser_ServiceLeave', callback),
+    onCSUser_RequestTimeout: (owner, callback) => registEvent(owner, 'OnCSUser_RequestTimeout', callback),
+    onCSUser_Disconnected: (owner, callback) => registEvent(owner, 'OnCSUser_Disconnected', callback),
+}
+
+module.exports = {
+    ConnectionState: signalR.connectionState,
+    IMServer: new IMServer()
+}
