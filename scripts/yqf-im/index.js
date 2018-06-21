@@ -1,4 +1,4 @@
-var { hubConnection, signalR } = require('signalr-no-jquery')
+import { hubConnection, signalR } from 'signalr-no-jquery'
 
 const imServerUrl = 'https://im.yiqifei.com/'
 
@@ -35,12 +35,10 @@ function raiseEvent(eventName, ...args) {
     }
 }
 
-function IMServer(){
-    var self = this;
+class IMServer {
+    static connectionState = signalR.connectionState.disconnected
 
-    this.connectionState = signalR.connectionState.disconnected
-
-    this.start = function (token) {
+    static start = function (token) {
         return new Promise((resolve, reject) => {
             if (_connection == null || _connection.state == signalR.connectionState.disconnected) {
                 _connection = hubConnection(imServerUrl + '/signalr', { qs: 'token=' + token });
@@ -74,14 +72,14 @@ function IMServer(){
         });
     }
 
-    this.stop = function () {
+    static stop = function () {
         if (_connection != null && _connection.state != signalR.connectionState.disconnected) {
             _connection.stop();
         }
     }
 
     // 服务端方法
-    this.methods = {
+    static methods = {
         addFriend: (message) => _hubProxy.invoke('AddFriend', message),
         addGroupMember: (message) => _hubProxy.invoke('AddGroupMember', message),
         createGroup: (message) => _hubProxy.invoke('CreateGroup', message),
@@ -109,7 +107,7 @@ function IMServer(){
     }
 
     // 客户端事件
-    this.events = {
+    static events = {
         off: (owner) => unregistEvents(owner),
 
         onConnectionStateChanged: (owner, callback) => registEvent(owner, 'SYS:OnConnectionStateChanged', callback),
@@ -131,28 +129,5 @@ function IMServer(){
     }
 }
 
-IMServer.prototype.events = {
-    off: (owner) => unregistEvents(owner),
-
-    onConnectionStateChanged: (owner, callback) => registEvent(owner, 'SYS:OnConnectionStateChanged', callback),
-
-    onChat: (owner, callback) => registEvent(owner, 'OnChat', callback),
-    onKickOff: (owner, callback) => registEvent(owner, 'OnKickOff', callback),
-    onGroupNotify: (owner, callback) => registEvent(owner, 'OnGroupNotify', callback),
-    onSNSNotify: (owner, callback) => registEvent(owner, 'OnSNSNotify', callback),
-    onCSService_Chat: (owner, callback) => registEvent(owner, 'OnCSService_Chat', callback),
-    onCSService_ChatRequest: (owner, callback) => registEvent(owner, 'OnCSService_ChatRequest', callback),
-    onCSService_ChatRequestCancelled: (owner, callback) => registEvent(owner, 'OnCSService_ChatRequestCancelled', callback),
-    onCSService_UserLeave: (owner, callback) => registEvent(owner, 'OnCSService_UserLeave', callback),
-    onCSService_ForwardingResult: (owner, callback) => registEvent(owner, 'OnCSService_ForwardingResult', callback),
-    onCSUser_Chat: (owner, callback) => registEvent(owner, 'OnCSUser_Chat', callback),
-    onCSUser_ServiceJoin: (owner, callback) => registEvent(owner, 'OnCSUser_ServiceJoin', callback),
-    onCSUser_ServiceLeave: (owner, callback) => registEvent(owner, 'OnCSUser_ServiceLeave', callback),
-    onCSUser_RequestTimeout: (owner, callback) => registEvent(owner, 'OnCSUser_RequestTimeout', callback),
-    onCSUser_Disconnected: (owner, callback) => registEvent(owner, 'OnCSUser_Disconnected', callback),
-}
-
-module.exports = {
-    ConnectionState: signalR.connectionState,
-    IMServer: new IMServer()
-}
+exports.ConnectionState = signalR.connectionState
+exports.IMServer = IMServer
